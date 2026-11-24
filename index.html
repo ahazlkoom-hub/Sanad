@@ -61,7 +61,7 @@ nav button.on{color:var(--main);font-weight:700}
 .btn.done{background:var(--ok);color:#fff}
 .prow{border-bottom:1px solid var(--line)}.prow:last-child{border:0}.prow .row{border-bottom:0}
 .demo{background:var(--gold-soft);color:var(--ink);font-size:12px;text-align:center;border-radius:10px;padding:4px 8px;margin-bottom:12px}
-.mdl{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.mdl.on{display:flex}.mdl .card{width:100%;max-width:380px}body.norole nav{display:none}
+.mdl{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.mdl.on{display:flex}.mdl .card{width:100%;max-width:380px}body.norole nav{display:none}nav button[data-s="role"]{display:none!important}
 body.nofin .fin{display:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -364,6 +364,7 @@ body.nofin .fin{display:none}
     if (!session) return;
     gate.style.display = 'none';
     document.body.classList.remove('norole');
+    window.sanadUser = session.user;
     window.dispatchEvent(new CustomEvent('sanad-auth-ready', { detail: { user: session.user } }));
   }
   function getClient() {
@@ -439,6 +440,7 @@ function drawS(){
   $('slist').innerHTML=l.length?l.map(function(i){var s=S[i],t=TG[ps(i)];return '<div class="row clk" data-stu="'+i+'"><div class="dot">'+s[0][0]+'</div><div class="n"><b>'+s[0]+'</b><span class="sub">المجموعة ('+s[1]+') · حضور '+ar(rate(i))+'٪</span></div>'+(ps(i)?'<span class="tag '+t[0]+'">'+t[1]+'</span>':'')+'</div>'}).join(''):'<div class="sub">لا يوجد طالب بهذا الاسم</div>';
 }
 function drawStu(){
+  if(!S[cur]){$('stu').innerHTML='';return}
   var i=cur,s=S[i],d=SD[i],c=cn(i),t=TG[ps(i)],r=rate(i);
   $('stu').innerHTML='<button class="back" data-go="students">رجوع</button>'+
   '<div class="card" style="text-align:center"><div class="dot big">'+s[0][0]+'</div><h1 style="margin-top:8px">'+s[0]+'</h1><div class="sub">المجموعة ('+s[1]+') · '+d[7]+'</div><button class="btn2" style="margin-top:10px;width:100%" id="editst">تعديل البيانات</button></div>'+
@@ -564,7 +566,12 @@ function saveG(){
   else if(!(cp>0)||cp<gcount(g.k,-1))er='السعة لازم تكون أكبر من صفر وما تقلش عن عدد الطلاب الحاليين ('+ar(gcount(g.k,-1))+')';
   else if(clash)er='فيه مجموعة تانية في نفس المكان والوقت في واحد من الأيام دي';
   if(er){$('gfe').textContent=er;return}
-  cfm('تأكيد تعديل موعد المجموعة ('+g.k+')؟ التقويم هيتغير معاه.',function(){
+  var gix=gEd;
+  cfm('تأكيد تعديل موعد المجموعة ('+g.k+')؟ التقويم هيتغير معاه.',async function(){
+    if(window.SANAD_REAL){
+      var gr=await sanadSaveGroup(GID[gix],{days:ds.join(' و'),lesson_time:tm,capacity:cp,place:pl});
+      if(gr.error){$('gfe').textContent='تعذر الحفظ على الخادم. حاول تاني.';return}
+    }
     g.days=ds.join(' و');g.t24=tm;g.time=fmtT(tm);g.place=pl;g.cap=cp;
     $('gform').style.display='none';gEd=-1;renderAll();toast('تم تعديل الموعد');lg('تعديل موعد المجموعة ('+g.k+'): '+g.days+' · '+g.time+' · '+pl);
   });
@@ -651,7 +658,14 @@ function saveForm(){
   else if(!(fee>0))er='اكتب قيمة الاشتراك الشهري';
   else if(st!=='منسحب'&&gcount(k,fe)>=g.cap)er='المجموعة ممتلئة، اختار مجموعة تانية';
   if(er){$('ferr').textContent=er;return}
-  var fin=function(){
+  var fin=async function(){
+    if(window.SANAD_REAL){
+      var sbtn=$('fsave');sbtn.disabled=true;
+      var res=await sanadSaveStudent(fe>-1?SID[fe]:null,{name:n,group_id:sanadGid(k),student_phone:sp,guardian_name:gn,guardian_phone:ph,monthly_fee:fee,status:st});
+      sbtn.disabled=false;
+      if(res.error){$('ferr').textContent='تعذر الحفظ على الخادم. اتأكد من الإنترنت وحاول تاني.';return}
+      if(fe===-1)SID.push(res.id);
+    }
     if(fe>-1){S[fe]=[n,k];var d=SD[fe];d[0]=gn;d[1]=ph;d[8]=sp;d[5]=fee;d[7]=st;cur=fe}
     else{S.push([n,k]);SD.push([gn,ph,0,0,0,fee,0,st,sp]);ST.push('');cur=S.length-1}
     rebuildSel();renderAll();show('stu');toast('تم حفظ بيانات الطالب');lg((fe>-1?'تعديل بيانات الطالب ':'إضافة طالب ')+n);
@@ -721,15 +735,88 @@ function drawN(){$('nlist').innerHTML=N.map(function(t){return '<div class="row"
 $('nadd').addEventListener('click',function(){var v=$('ninp').value.trim();if(!v)return;N.unshift(v);$('ninp').value='';drawN();toast('تمت إضافة الملاحظة')});
 var T=[["تذكير بالدفع","السلام عليكم، ولي أمر {n}. نفكّركم بموعد سداد مصاريف الشهر. شكراً لتعاونكم."],["غياب اليوم","السلام عليكم، {n} اتغيّب عن حصة النهارده. نرجو الاطمئنان عليه."],["تقرير الأسبوع","السلام عليكم، {n} ملتزم بالحضور ومستواه في تحسّن. بالتوفيق إن شاء الله."]];
 var ti=0;
-function fillM(){$('mtxt').value=T[ti][1].replace('{n}',S[+$('msel').value][0])}
+function fillM(){var s0=S[+$('msel').value];$('mtxt').value=s0?T[ti][1].replace('{n}',s0[0]):''}
 function drawT(){$('tchips').innerHTML=T.map(function(t,i){return '<button class="chip'+(i===ti?' on':'')+'" data-t="'+i+'">'+t[0]+'</button>'}).join('');fillM()}
 $('msel').innerHTML=S.map(function(s,i){return '<option value="'+i+'">'+s[0]+'</option>'}).join('');
 $('msel').addEventListener('change',fillM);
 $('tchips').addEventListener('click',function(e){var b=e.target.closest('.chip');if(b){ti=+b.dataset.t;drawT()}});
-$('msend').addEventListener('click',function(){var m=$('mtxt').value.trim(),ph=SD[+$('msel').value][1];if(!m){toast('اكتب نص الرسالة');return}window.open('https://wa.me/20'+ph.slice(1)+'?text='+encodeURIComponent(m),'_blank')});
+$('msend').addEventListener('click',function(){var m=$('mtxt').value.trim(),sd0=SD[+$('msel').value];if(!sd0){toast('مفيش طلاب لسه');return}var ph=sd0[1];if(!m){toast('اكتب نص الرسالة');return}window.open('https://wa.me/20'+ph.slice(1)+'?text='+encodeURIComponent(m),'_blank')});
 drawN();drawT();
 renderAll();
 show('role');
+
+/* ===== SANAD real data layer (Supabase) ===== */
+var SID=[],GID=[];
+function sanadGid(letter){for(var i=0;i<G.length;i++){if(G[i].k===letter)return GID[i]||null}return null}
+async function sanadSaveStudent(id,row){
+  try{
+    var sb=window.sanadSupabase,q;
+    if(id){q=await sb.from('students').update(row).eq('id',id).select('id').single()}
+    else{row.teacher_id=window.SANAD_PROFILE.teacher_id;q=await sb.from('students').insert(row).select('id').single()}
+    if(q.error)return {error:q.error};
+    return {id:q.data.id};
+  }catch(e){return {error:e}}
+}
+async function sanadSaveGroup(id,row){
+  try{
+    if(!id)return {error:new Error('no id')};
+    var q=await window.sanadSupabase.from('student_groups').update(row).eq('id',id).select('id').single();
+    return q.error?{error:q.error}:{};
+  }catch(e){return {error:e}}
+}
+async function sanadLoadData(){
+  var sb=window.sanadSupabase;
+  var gq=await sb.from('student_groups').select('*').order('name');
+  var sq=await sb.from('students').select('*').order('created_at');
+  if(gq.error)throw gq.error;if(sq.error)throw sq.error;
+  var gmap={};
+  G.length=0;GID.length=0;
+  gq.data.forEach(function(g){
+    var t=g.lesson_time?String(g.lesson_time).slice(0,5):'16:00';
+    G.push({k:g.name,sub:g.subject||'',stage:g.stage||'',days:g.days||'',t24:t,time:fmtT(t),place:g.place||'',cap:g.capacity||0});
+    GID.push(g.id);gmap[g.id]=g.name;
+  });
+  S.length=0;SD.length=0;SID.length=0;ST.length=0;
+  sq.data.forEach(function(r){
+    S.push([r.name,gmap[r.group_id]||'']);
+    SD.push([r.guardian_name||'',r.guardian_phone,0,0,0,Number(r.monthly_fee),0,r.status,r.student_phone]);
+    SID.push(r.id);ST.push('');
+  });
+  EX.length=0;PL.length=0;AU.length=0;cur=0;
+  window.SANAD_REAL=true;
+  rebuildSel();renderAll();
+}
+function sanadNote(id,text){
+  var el=$(id);if(!el||el.querySelector('.sanad-note'))return;
+  var d=document.createElement('div');d.className='card sub sanad-note';d.style.marginBottom='10px';d.textContent=text;
+  el.insertBefore(d,el.firstChild);
+}
+async function sanadDeny(msg){
+  window.SANAD_UID=null;
+  try{await window.sanadSupabase.auth.signOut()}catch(e){}
+  var er=document.getElementById('authError');if(er)er.textContent=msg;
+}
+async function sanadStart(user){
+  if(!user||window.SANAD_UID===user.id)return;
+  window.SANAD_UID=user.id;
+  try{
+    var sb=window.sanadSupabase;
+    var pr=await sb.from('profiles').select('role,full_name,teacher_id').eq('id',user.id).maybeSingle();
+    if(pr.error)throw pr.error;
+    var map={teacher:'t',center_staff:'c',sanad_manager:'m',sanad_staff:'s'};
+    var r=pr.data?map[pr.data.role]:null;
+    if(!r){await sanadDeny('حسابك لسه مش مفعّل. كلّم إدارة سند.');return}
+    window.SANAD_PROFILE=pr.data;
+    if(r==='t'||r==='c'){await sanadLoadData()}
+    setRole(r);
+    if(r==='t'||r==='c')sanadNote('home','الطلاب والمجموعات محفوظين فعلاً. الحضور والمدفوعات والباقي لسه تجريبي ومش بيتحفظ.');
+    else sanadNote('adm','شاشات المدرسين والاشتراكات لسه تجريبية ومش بتتحفظ.');
+  }catch(e){
+    await sanadDeny('تعذر تحميل بياناتك. حدّث الصفحة وحاول مرة أخرى.');
+  }
+}
+window.addEventListener('sanad-auth-ready',function(e){sanadStart(e.detail&&e.detail.user)});
+if(window.sanadUser)sanadStart(window.sanadUser);
 </script>
 </body>
 </html>
