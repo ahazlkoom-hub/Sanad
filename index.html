@@ -194,11 +194,17 @@ body.nofin .fin{display:none}
 <section class="screen" id="grp">
   <button class="back" data-go="more">رجوع</button>
   <div class="top"><h1>المجموعات</h1></div>
+  <button class="btn2 main" id="gnewbtn" style="display:none;width:100%;margin-bottom:10px">مجموعة جديدة</button>
   <div class="card" id="gform" style="display:none;margin-bottom:10px">
     <b id="gfh"></b>
+    <div id="gnew" style="display:none">
+      <span class="sub" style="display:block;margin-top:10px">اسم المجموعة (حرف أو اسم قصير)</span><input class="inp" id="gfn" maxlength="20">
+      <span class="sub" style="display:block;margin-top:10px">المادة</span><input class="inp" id="gfsb" maxlength="40">
+      <span class="sub" style="display:block;margin-top:10px">المرحلة</span><input class="inp" id="gfst" maxlength="40" placeholder="مثال: الصف الثالث الثانوي">
+    </div>
     <span class="sub" style="display:block;margin-top:10px">أيام الحصص</span><div class="chips" id="gfd" style="flex-wrap:wrap"></div>
     <span class="sub" style="display:block;margin-top:10px">الوقت</span><input class="inp" id="gft" type="time">
-    <span class="sub" style="display:block;margin-top:10px">المكان</span><select class="inp" id="gfp"></select>
+    <span class="sub" style="display:block;margin-top:10px">المكان</span><select class="inp" id="gfp"></select><input class="inp" id="gfpt" maxlength="60" style="display:none" placeholder="مثال: سنتر النور">
     <span class="sub" style="display:block;margin-top:10px">السعة (عدد الطلاب)</span><input class="inp" id="gfc" type="number" inputmode="numeric">
     <div class="sub" id="gfe" style="color:var(--bad);margin-top:10px"></div>
     <div class="acts" style="margin-top:10px"><button class="btn2 main" id="gfs">حفظ الموعد</button><button class="btn2" id="gfx">إلغاء</button></div>
@@ -442,7 +448,7 @@ $('nav').addEventListener('click',function(e){var b=e.target.closest('button');i
 function toast(t){var el=$('toast');el.textContent=t;el.classList.add('on');setTimeout(function(){el.classList.remove('on')},1800)}
 
 function drawS(){
-  $('chips').innerHTML=chipsHTML([['الكل','الكل'],['أ','المجموعة أ'],['ب','المجموعة ب'],['ج','المجموعة ج']],sg,'data-sg');
+  $('chips').innerHTML=chipsHTML([['الكل','الكل']].concat(G.map(function(g){return [g.k,'المجموعة '+g.k]})),sg,'data-sg');
   var l=[];S.forEach(function(s,i){if((sg==='الكل'||s[1]===sg)&&s[0].indexOf(qs)>-1)l.push(i)});
   $('cnt').textContent=ar(l.length)+' طالب';
   $('slist').innerHTML=l.length?l.map(function(i){var s=S[i],t=TG[ps(i)];return '<div class="row clk" data-stu="'+i+'"><div class="dot">'+s[0][0]+'</div><div class="n"><b>'+s[0]+'</b><span class="sub">المجموعة ('+s[1]+') · حضور '+ar(rate(i))+'٪</span></div>'+(ps(i)?'<span class="tag '+t[0]+'">'+t[1]+'</span>':'')+'</div>'}).join(''):'<div class="sub">لا يوجد طالب بهذا الاسم</div>';
@@ -461,7 +467,7 @@ var am='t',AMN={t:'المدرس',c:'موظف السنتر',q:'QR'},PQ={0:'٤:٠�
 var code=String(Math.floor(100000+Math.random()*900000));
 function drawA(){
   $('amodes').innerHTML=chipsHTML(window.SANAD_REAL?(ROLE==='c'?[['c','موظف السنتر']]:[['t','المدرس']]):[['t','المدرس'],['c','موظف السنتر'],['q','QR']],am,'data-am');
-  $('achips').innerHTML=chipsHTML([['أ','المجموعة أ'],['ب','المجموعة ب'],['ج','المجموعة ج']],ag,'data-ag');
+  $('achips').innerHTML=chipsHTML(G.map(function(g){return [g.k,'المجموعة '+g.k]}),ag,'data-ag');
   var ids=[],p=0,l=0,a=0,u=0;
   S.forEach(function(s,i){if(s[1]===ag&&SD[i][7]==='نشط')ids.push(i)});
   ids.forEach(function(i){var v=ST[i];if(v==='p')p++;else if(v==='l')l++;else if(v==='a')a++;else u++});
@@ -564,13 +570,41 @@ function plCard(i){var r=PL.filter(function(p){return p.i===i});return '<h2>سج
 var gEd=-1,gSel=[];
 function fmtT(v){var p=v.split(':'),h=+p[0];return dg((h%12||12)+':'+p[1])+' '+(h>=12?'م':'ص')}
 function drawGf(){$('gfd').innerHTML=CD.map(function(d){return '<button class="chip'+(gSel.indexOf(d)>-1?' on':'')+'" data-gd="'+d+'">'+d+'</button>'}).join('')}
-function openG(i){gEd=i;var g=G[i],pl=BR.map(function(b){return b.n});if(pl.indexOf(g.place)<0)pl.push(g.place);gSel=CD.filter(function(d){return g.days.indexOf(d)>-1});$('gft').value=g.t24||'16:00';$('gfc').value=g.cap;$('gfp').innerHTML=pl.map(function(n){return '<option'+(n===g.place?' selected':'')+'>'+esc(n)+'</option>'}).join('');$('gfh').textContent='تعديل موعد المجموعة ('+g.k+')';$('gfe').textContent='';$('gform').style.display='block';drawGf();window.scrollTo(0,0)}
+function gPlace(){return window.SANAD_REAL?$('gfpt').value.trim():$('gfp').value}
+function gMode(nw){$('gnew').style.display=nw?'block':'none';$('gfp').style.display=window.SANAD_REAL?'none':'';$('gfpt').style.display=window.SANAD_REAL?'':'none';$('gfs').textContent=nw?'حفظ المجموعة':'حفظ الموعد'}
+function openGNew(){gEd=-2;gSel=[];$('gfn').value='';$('gfsb').value='';$('gfst').value='';$('gft').value='16:00';$('gfc').value=10;$('gfpt').value=window.SANAD_CENTER||'';$('gfh').textContent='مجموعة جديدة';$('gfe').textContent='';$('gform').style.display='block';drawGf();gMode(true);window.scrollTo(0,0)}
+function openG(i){gEd=i;var g=G[i],pl=BR.map(function(b){return b.n});if(pl.indexOf(g.place)<0)pl.push(g.place);gSel=CD.filter(function(d){return g.days.indexOf(d)>-1});$('gft').value=g.t24||'16:00';$('gfc').value=g.cap;$('gfp').innerHTML=pl.map(function(n){return '<option'+(n===g.place?' selected':'')+'>'+esc(n)+'</option>'}).join('');$('gfh').textContent='تعديل موعد المجموعة ('+g.k+')';$('gfe').textContent='';$('gform').style.display='block';drawGf();gMode(false);if(window.SANAD_REAL)$('gfpt').value=g.place;window.scrollTo(0,0)}
+async function saveGNew(){
+  var nm=$('gfn').value.trim(),sb0=$('gfsb').value.trim(),st0=$('gfst').value.trim(),tm=$('gft').value,pl=gPlace(),cp=+$('gfc').value,er='';
+  var ds=CD.filter(function(d){return gSel.indexOf(d)>-1});
+  var clash=G.some(function(o){return o.place===pl&&o.t24===tm&&ds.some(function(d){return o.days.indexOf(d)>-1})});
+  if(!nm)er='اكتب اسم المجموعة';
+  else if(/[<>"&`]/.test(nm+sb0+st0+pl))er='ممنوع استخدام الرموز < > " & في البيانات';
+  else if(G.some(function(o){return o.k===nm}))er='فيه مجموعة بنفس الاسم';
+  else if(!sb0)er='اكتب المادة';
+  else if(!ds.length)er='اختار يوم واحد على الأقل';
+  else if(!tm)er='اختار وقت الحصة';
+  else if(!pl)er='اكتب مكان الحصة';
+  else if(!(cp>0))er='السعة لازم تكون أكبر من صفر';
+  else if(clash)er='فيه مجموعة تانية في نفس المكان والوقت في واحد من الأيام دي';
+  if(er){$('gfe').textContent=er;return}
+  var btn=$('gfs');btn.disabled=true;
+  var r=await sanadCreateGroup({name:nm,subject:sb0,stage:st0,days:ds.join(' و'),lesson_time:tm,capacity:cp,place:pl});
+  btn.disabled=false;
+  if(r.error){$('gfe').textContent='تعذر حفظ المجموعة. حاول تاني.';return}
+  G.push({k:nm,sub:sb0,stage:st0,days:ds.join(' و'),t24:tm,time:fmtT(tm),place:pl,cap:cp});GID.push(r.id);
+  if(!ag||!G.some(function(o){return o.k===ag}))ag=nm;
+  $('gform').style.display='none';gEd=-1;renderAll();toast('تم إنشاء المجموعة');sanadLoadAudit();
+}
 function saveG(){
-  var g=G[gEd],tm=$('gft').value,pl=$('gfp').value,cp=+$('gfc').value,er='';
+  if(gEd===-2){saveGNew();return}
+  var g=G[gEd],tm=$('gft').value,pl=gPlace(),cp=+$('gfc').value,er='';
   var ds=CD.filter(function(d){return gSel.indexOf(d)>-1});
   var clash=G.some(function(o,j){return j!==gEd&&o.place===pl&&o.t24===tm&&ds.some(function(d){return o.days.indexOf(d)>-1})});
   if(!ds.length)er='اختار يوم واحد على الأقل';
   else if(!tm)er='اختار وقت الحصة';
+  else if(!pl)er='اكتب مكان الحصة';
+  else if(/[<>"&`]/.test(pl))er='ممنوع استخدام الرموز < > " & في المكان';
   else if(!(cp>0)||cp<gcount(g.k,-1))er='السعة لازم تكون أكبر من صفر وما تقلش عن عدد الطلاب الحاليين ('+ar(gcount(g.k,-1))+')';
   else if(clash)er='فيه مجموعة تانية في نفس المكان والوقت في واحد من الأيام دي';
   if(er){$('gfe').textContent=er;return}
@@ -602,17 +636,18 @@ function setRole(r){
   if(r==='t'||r==='c'){am=r==='c'?'c':'t';drawA();show('home')}else{drawAdm();show('adm')}
 }
 document.body.addEventListener('click',function(e){
-  var b=e.target.closest('[data-role],[data-pmt],[data-ge],[data-gd],#gfs,#gfx,[data-lbd],[data-sfd],#tcnew,#tcadd,[data-tco],[data-tcr],[data-tcc]');if(!b)return;var d=b.dataset;
+  var b=e.target.closest('[data-role],[data-pmt],[data-ge],[data-gd],#gfs,#gfx,#gnewbtn,[data-lbd],[data-sfd],#tcnew,#tcadd,[data-tco],[data-tcr],[data-tcc]');if(!b)return;var d=b.dataset;
   if(d.role)setRole(d.role);
   else if(d.pmt){pmth=d.pmt;drawP()}
   else if(d.ge!==undefined)openG(+d.ge);
   else if(d.gd){var x=gSel.indexOf(d.gd);if(x>-1)gSel.splice(x,1);else gSel.push(d.gd);drawGf()}
   else if(b.id==='gfs')saveG();
   else if(b.id==='gfx'){$('gform').style.display='none';gEd=-1}
+  else if(b.id==='gnewbtn'){openGNew()}
   else if(d.lbd!==undefined){var k=+d.lbd,m=LB[k];cfm('حذف المادة «'+m[0]+'»؟',function(){LB.splice(k,1);lg('حذف مادة من المكتبة: '+m[0]);drawLb();toast('تم الحذف')})}
   else if(d.sfd!==undefined){var q=+d.sfd,f=SF[q];cfm('حذف الموظف «'+f.n+'»؟',function(){SF.splice(q,1);lg('حذف الموظف '+f.n);drawSf();toast('تم الحذف')})}
   else if(b.id==='tcnew'){var fm=$('tcform');fm.style.display=fm.style.display==='none'?'block':'none'}
-  else if(b.id==='tcadd'){var n=$('tcn').value.trim(),c=$('tcc').value.trim();if(!n){toast('اكتب اسم المدرس');return}if(window.SANAD_ADMIN){sanadCreateTeacher(n,c);return}TC.unshift({n:n,c:c||'غير محدد',s:'trial',d:3});lg('إنشاء حساب مدرس '+n+' (تجربة ٣ أيام)');$('tcn').value='';$('tcc').value='';$('tcform').style.display='none';drawAdm();toast('تم إنشاء الحساب')}
+  else if(b.id==='tcadd'){var n=$('tcn').value.trim(),c=$('tcc').value.trim();if(!n){toast('اكتب اسم المدرس');return}if(/[<>"&`]/.test(n+c)){toast('ممنوع استخدام الرموز < > " & في الأسماء');return}if(window.SANAD_ADMIN){sanadCreateTeacher(n,c);return}TC.unshift({n:n,c:c||'غير محدد',s:'trial',d:3});lg('إنشاء حساب مدرس '+n+' (تجربة ٣ أيام)');$('tcn').value='';$('tcc').value='';$('tcform').style.display='none';drawAdm();toast('تم إنشاء الحساب')}
   else if(d.tco!==undefined){tpI=tpI===+d.tco?-1:+d.tco;drawAdm()}
   else if(d.tcr!==undefined){var i=+d.tcr,a=+$('tpa').value,pm=$('tpm').value,t=TC[i];if(!(a>0)){toast('اكتب المبلغ المستلم');return}cfm('تسجيل اشتراك '+t.n+' بمبلغ '+ar(a)+' ج.م ('+pm+')؟',function(){if(window.SANAD_ADMIN){sanadSaveSub(t,a,pm).then(function(ok){if(ok){tpI=-1;drawAdm();toast('تم التسجيل، بانتظار تأكيد المدير')}});return}t.s='pend';t.pa=a;t.pm=pm;tpI=-1;lg('تسجيل اشتراك '+t.n+': '+ar(a)+' ج.م ('+pm+') بانتظار تأكيد المدير');drawAdm();toast('تم التسجيل، بانتظار تأكيد المدير')})}
   else if(d.tcc!==undefined){var j=+d.tcc,u=TC[j];cfm('تأكيد اشتراك '+u.n+'؟',function(){if(window.SANAD_ADMIN){sanadConfirmSub(u).then(function(ok){if(ok){drawAdm();toast('تم تأكيد الاشتراك')}});return}u.s='sub';u.d=30;lg('تأكيد اشتراك '+u.n+' (٣٠ يوم)');drawAdm();toast('تم تأكيد الاشتراك')})}
@@ -646,22 +681,25 @@ document.body.addEventListener('click',function(e){
 var G=[{k:'أ',sub:'رياضيات',stage:'الصف الثالث الثانوي',days:'السبت والثلاثاء',time:'٤:٠٠ م',t24:'16:00',place:'سنتر النور',cap:10},{k:'ب',sub:'رياضيات',stage:'الصف الثاني الثانوي',days:'الأحد والأربعاء',time:'٥:٣٠ م',t24:'17:30',place:'سنتر النور',cap:3},{k:'ج',sub:'فيزياء',stage:'الصف الثالث الثانوي',days:'الاثنين والخميس',time:'٧:٠٠ م',t24:'19:00',place:'سنتر الأمل',cap:9}];
 function gcount(k,ex){var n=0;S.forEach(function(s,i){if(s[1]===k&&i!==ex&&SD[i][7]!=='منسحب')n++});return n}
 function drawG(){
-  $('glist').innerHTML=G.map(function(g){var n=gcount(g.k,-1),full=n>=g.cap;return '<div class="card" style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><div class="dot">'+g.k+'</div><div class="n"><b>المجموعة ('+g.k+') - '+g.sub+'</b><span class="sub">'+g.stage+'</span></div><span class="tag '+(full?'t-bad':'t-ok')+'">'+(full?'ممتلئة':'متاحة')+'</span></div><div class="sub" style="margin:8px 0 4px">'+g.days+' · '+g.time+' · '+g.place+'</div><div class="bar'+(full?' g':'')+'"><i style="width:'+Math.min(100,Math.round(n/g.cap*100))+'%"></i></div><span class="sub">'+ar(n)+' من '+ar(g.cap)+' طالب</span><button class="btn2" style="width:100%;margin-top:10px" data-ge="'+G.indexOf(g)+'">تعديل الموعد</button></div>'}).join('');
+  $('glist').innerHTML=G.map(function(g){var n=gcount(g.k,-1),full=n>=g.cap;return '<div class="card" style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><div class="dot">'+esc(g.k)+'</div><div class="n"><b>المجموعة ('+esc(g.k)+') - '+esc(g.sub)+'</b><span class="sub">'+esc(g.stage)+'</span></div><span class="tag '+(full?'t-bad':'t-ok')+'">'+(full?'ممتلئة':'متاحة')+'</span></div><div class="sub" style="margin:8px 0 4px">'+esc(g.days)+' · '+g.time+' · '+esc(g.place)+'</div><div class="bar'+(full?' g':'')+'"><i style="width:'+Math.min(100,Math.round(n/g.cap*100))+'%"></i></div><span class="sub">'+ar(n)+' من '+ar(g.cap)+' طالب</span><button class="btn2" style="width:100%;margin-top:10px" data-ge="'+G.indexOf(g)+'">تعديل الموعد</button></div>'}).join('');
 }
 function rebuildSel(){$('msel').innerHTML=S.map(function(s,i){return '<option value="'+i+'">'+s[0]+'</option>'}).join('');fillM()}
 var fe=-1;
 function openForm(i){
-  fe=i;var s=i>-1?S[i]:['','أ'],d=i>-1?SD[i]:['','',0,0,0,'',0,'نشط'];
+  if(!G.length){toast('اعمل مجموعة الأول من شاشة المجموعات');show('grp');return}
+  fe=i;var s=i>-1?S[i]:['',G[0].k],d=i>-1?SD[i]:['','',0,0,0,'',0,'نشط'];
   $('ftitle').textContent=i>-1?'تعديل بيانات الطالب':'إضافة طالب';
   $('fname').value=s[0];
-  $('fgrp').innerHTML=G.map(function(g){return '<option value="'+g.k+'"'+(g.k===s[1]?' selected':'')+'>المجموعة ('+g.k+') - '+g.sub+'</option>'}).join('');
+  $('fgrp').innerHTML=G.map(function(g){return '<option value="'+g.k+'"'+(g.k===s[1]?' selected':'')+'>المجموعة ('+esc(g.k)+') - '+esc(g.sub)+'</option>'}).join('');
   $('fgn').value=d[0];$('fph').value=d[1];$('fsp').value=d[8]||'';$('ffee').value=d[5];$('fst').value=d[7];$('ferr').textContent='';
   show('sform');
 }
 function saveForm(){
   var n=$('fname').value.trim(),k=$('fgrp').value,gn=$('fgn').value.trim(),ph=$('fph').value.trim(),sp=$('fsp').value.trim(),fee=+$('ffee').value,st=$('fst').value,er='';
   var g=G.filter(function(x){return x.k===k})[0];
-  if(!n)er='اكتب اسم الطالب';
+  if(!g)er='اختار مجموعة. لو مفيش مجموعات، اعملها الأول من شاشة المجموعات';
+  else if(!n)er='اكتب اسم الطالب';
+  else if(/[<>"&`]/.test(n+gn))er='ممنوع استخدام الرموز < > " & في الأسماء';
   else if(!gn)er='اكتب اسم ولي الأمر';
   else if(!/^01[0-9]{9}$/.test(ph))er='رقم الهاتف لازم يكون ١١ رقم ويبدأ بـ 01';
   else if(!/^01[0-9]{9}$/.test(sp))er='رقم هاتف الطالب مطلوب، لازم يكون ١١ رقم ويبدأ بـ 01';
@@ -768,6 +806,13 @@ async function sanadSaveStudent(id,row){
     return {id:q.data.id};
   }catch(e){return {error:e}}
 }
+async function sanadCreateGroup(row){
+  try{
+    row.teacher_id=window.SANAD_PROFILE.teacher_id;
+    var q=await window.sanadSupabase.from('student_groups').insert(row).select('id').single();
+    return q.error?{error:q.error}:{id:q.data.id};
+  }catch(e){return {error:e}}
+}
 async function sanadSaveGroup(id,row){
   try{
     if(!id)return {error:new Error('no id')};
@@ -794,6 +839,8 @@ async function sanadLoadData(){
     SID.push(r.id);ST.push('');
   });
   EX.length=0;PL.length=0;AU.length=0;cur=0;
+  ag=G.length?G[0].k:'';
+  try{var cq=await sb.from('teachers').select('center_name').eq('id',window.SANAD_PROFILE.teacher_id).maybeSingle();window.SANAD_CENTER=(cq.data&&cq.data.center_name)||''}catch(e){window.SANAD_CENTER=''}
   window.SANAD_REAL=true;
   am=(ROLE==='c')?'c':'t';
   window.lg=function(){};
@@ -859,6 +906,8 @@ function sanadNote(id,text){
   var el=$(id);if(!el||el.querySelector('.sanad-note'))return;
   var d=document.createElement('div');d.className='card sub sanad-note';d.style.marginBottom='10px';
   var t=document.createElement('div');t.textContent=text;d.appendChild(t);
+  var pb=document.createElement('button');pb.className='btn2';pb.style.cssText='margin-top:8px;width:100%';pb.textContent='تغيير كلمة المرور';
+  pb.addEventListener('click',sanadPwDialog);d.appendChild(pb);
   var b=document.createElement('button');b.className='btn2';b.style.cssText='margin-top:8px;width:100%';b.textContent='تسجيل الخروج';
   b.addEventListener('click',async function(){try{await window.sanadSupabase.auth.signOut()}catch(e){}location.reload()});
   d.appendChild(b);
@@ -920,6 +969,49 @@ async function sanadConfirmSub(t){
     await sanadLoadAdmin();return true;
   }catch(e){toast('تعذر تأكيد الاشتراك. حاول تاني.');return false}
 }
+
+function sanadPwDialog(){
+  if(document.getElementById('sanad-pw'))return;
+  var d=document.createElement('div');d.id='sanad-pw';
+  d.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto';
+  var lab=function(t){return '<span class="sub" style="display:block;margin-top:10px">'+t+'</span>'};
+  d.innerHTML='<div class="card" style="width:100%;max-width:420px"><b>تغيير كلمة المرور</b>'
+    +lab('كلمة المرور الحالية')+'<input class="inp" id="pwOld" type="password" autocomplete="current-password" dir="ltr">'
+    +lab('كلمة المرور الجديدة (١٠ حروف على الأقل، حروف وأرقام)')+'<input class="inp" id="pwNew" type="password" autocomplete="new-password" dir="ltr">'
+    +lab('تأكيد كلمة المرور الجديدة')+'<input class="inp" id="pwNew2" type="password" autocomplete="new-password" dir="ltr">'
+    +'<button type="button" class="btn2" id="pwShow" style="margin-top:10px;width:100%">إظهار</button>'
+    +'<div class="sub" id="pwErr" style="color:var(--bad);margin-top:10px"></div>'
+    +'<div class="acts" style="margin-top:10px"><button class="btn2 main" id="pwSave">حفظ</button><button class="btn2" id="pwCancel">إلغاء</button></div></div>';
+  document.body.appendChild(d);
+  document.getElementById('pwCancel').addEventListener('click',function(){d.remove()});
+  document.getElementById('pwShow').addEventListener('click',function(){
+    var show=this.textContent==='إظهار';
+    ['pwOld','pwNew','pwNew2'].forEach(function(id){document.getElementById(id).type=show?'text':'password'});
+    this.textContent=show?'إخفاء':'إظهار';
+  });
+  document.getElementById('pwSave').addEventListener('click',sanadChangePw);
+}
+async function sanadChangePw(){
+  var clean=function(v){return v.replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF\u00A0]/g,'').trim()};
+  var old=clean($('pwOld').value),nw=clean($('pwNew').value),nw2=clean($('pwNew2').value),er='',err=$('pwErr');
+  if(!old)er='اكتب كلمة المرور الحالية';
+  else if(nw.length<10)er='كلمة المرور الجديدة لازم ١٠ حروف على الأقل';
+  else if(!/[A-Za-z\u0600-\u06FF]/.test(nw)||!/[0-9]/.test(nw))er='كلمة المرور لازم تحتوي على حروف وأرقام';
+  else if(nw!==nw2)er='التأكيد مش مطابق لكلمة المرور الجديدة';
+  else if(nw===old)er='اختار كلمة مرور مختلفة عن الحالية';
+  if(er){err.textContent=er;return}
+  var btn=$('pwSave');btn.disabled=true;err.textContent='';
+  try{
+    var sb=window.sanadSupabase;
+    var chk=await sb.auth.signInWithPassword({email:window.sanadUser.email,password:old});
+    if(chk.error){err.textContent='كلمة المرور الحالية غلط';return}
+    var up=await sb.auth.updateUser({password:nw});
+    if(up.error){err.textContent='تعذر تغيير كلمة المرور. جرّب كلمة مرور أقوى.';return}
+    document.getElementById('sanad-pw').remove();
+    toast('تم تغيير كلمة المرور');
+  }catch(e){err.textContent='تعذر تغيير كلمة المرور. اتأكد من الإنترنت.'}
+  finally{btn.disabled=false}
+}
 async function sanadDeny(msg){
   window.SANAD_UID=null;
   try{await window.sanadSupabase.auth.signOut()}catch(e){}
@@ -936,15 +1028,22 @@ async function sanadStart(user){
     var r=pr.data?map[pr.data.role]:null;
     if(!r){await sanadDeny('حسابك لسه مش مفعّل. كلّم إدارة سند.');return}
     window.SANAD_PROFILE=pr.data;
+    if(r==='t'||r==='c'){
+      var tr=await sb.from('teachers').select('trial_ends_at,paid_until').eq('id',pr.data.teacher_id).maybeSingle();
+      var subOk=tr.data&&((tr.data.paid_until&&tr.data.paid_until>=sanadToday())||Date.parse(tr.data.trial_ends_at)>Date.now());
+      if(!subOk){await sanadDeny('اشتراكك انتهى. كلّم إدارة سند للتجديد.');return}
+    }
     if(r==='t'||r==='c'){ROLE=r;await sanadLoadData()}
     if(r==='m'||r==='s'){ROLE=r;await sanadLoadAdmin();if(r==='s')$('tcnew').style.display='none'}
     setRole(r);
+    if(r==='t'||r==='c')$('gnewbtn').style.display='block';
     if(r==='t'||r==='c')sanadNote('home','الطلاب والمجموعات والحضور والمدفوعات وسجل التعديلات محفوظين فعلاً. الامتحانات والرسائل والباقي لسه تجريبي ومش بيتحفظ.');
     else sanadNote('adm','المدرسون والاشتراكات وسجل العمليات محفوظين فعلاً.');
   }catch(e){
     await sanadDeny('تعذر تحميل بياناتك. حدّث الصفحة وحاول مرة أخرى.');
   }
 }
+window.addEventListener('error',function(){try{toast('حصل خطأ غير متوقع. حدّث الصفحة وحاول تاني.')}catch(e){}});
 window.addEventListener('sanad-auth-ready',function(e){sanadStart(e.detail&&e.detail.user)});
 if(window.sanadUser)sanadStart(window.sanadUser);
 </script>
