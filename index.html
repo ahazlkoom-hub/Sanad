@@ -71,7 +71,7 @@ body.nofin .fin{display:none}
   <div class="card" style="width:100%;max-width:390px">
     <div style="text-align:center;margin-bottom:16px"><div class="av" style="margin:0 auto 10px">س</div><h1>سند</h1><div class="sub">تسجيل الدخول لحسابك</div></div>
     <label class="sub" for="authEmail">البريد الإلكتروني</label><input class="inp" id="authEmail" type="email" autocomplete="email" placeholder="name@example.com" dir="ltr">
-    <label class="sub" for="authPassword" style="display:block;margin-top:12px">كلمة المرور</label><input class="inp" id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••" dir="ltr">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><label class="sub" for="authPassword">كلمة المرور</label><button type="button" id="authShow" style="background:none;border:0;color:var(--gold,#e3b86b);font:inherit;cursor:pointer;padding:4px 0">إظهار</button></div><input class="inp" id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••" dir="ltr">
     <div id="authError" class="sub" style="color:var(--bad);margin-top:10px"></div>
     <button class="btn" id="authLogin">دخول</button>
     <div class="sub" style="margin-top:10px;text-align:center">الحسابات بتتعمل من إدارة سند فقط.</div>
@@ -384,9 +384,15 @@ body.nofin .fin{display:none}
       return null;
     }
   }
+  document.getElementById('authShow').addEventListener('click', function() {
+    const show = password.type === 'password';
+    password.type = show ? 'text' : 'password';
+    this.textContent = show ? 'إخفاء' : 'إظهار';
+  });
   loginBtn.addEventListener('click', async function() {
     err.textContent = '';
-    const e = email.value.trim(), p = password.value;
+    const clean = function(v) { return v.replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF\u00A0]/g, '').trim(); };
+    const e = clean(email.value), p = clean(password.value);
     if (!e || !p) return showError('اكتب البريد الإلكتروني وكلمة المرور.');
     const sb = getClient();
     if (!sb) return;
